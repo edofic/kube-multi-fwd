@@ -7,19 +7,25 @@ import (
 	"log"
 	"net"
 	"os"
+	"strings"
 )
 
 type Command struct {
-	Name string
-	Code func()
+	Name        string
+	Description string
+	Code        func()
 }
 
 var commands = []Command{
-	{"proxy", mainProxy},
+	{"proxy", "Server side that proxies traffic", mainProxy},
 }
 
 func printHelp(name string) {
-	panic("TODO")
+	fmt.Printf("usage: %s COMMAND ...flags\n\n", name)
+	fmt.Println("Available commands:")
+	for _, command := range commands {
+		fmt.Println(command.Name, strings.Repeat(" ", 10-len(command.Name)), command.Description)
+	}
 }
 
 func main() {

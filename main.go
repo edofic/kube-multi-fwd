@@ -2,6 +2,8 @@
 package main
 
 import (
+	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -9,6 +11,8 @@ import (
 	"net"
 	"os"
 	"strings"
+
+	"google.golang.org/grpc"
 )
 
 type Command struct {
@@ -18,7 +22,9 @@ type Command struct {
 }
 
 var commands = []Command{
-	{"proxy", "Server side that proxies traffic", mainProxy},
+	{"proxy-test", "Quick proxying test", mainProxy},
+	{"server", "Server side that proxies traffic", mainServer},
+	{"client", "Client side that connects to the proxy", mainClient},
 }
 
 func printHelp(name string) {
@@ -85,4 +91,79 @@ func pipeConn(source, target net.Conn, closeCh chan struct{}) {
 	io.Copy(source, target)
 	//log.Print(n, err)
 	closeCh <- struct{}{}
+}
+
+func mainServer() {
+	interfaceF := flag.String("interface", "127.0.0.1", "Interface to bind to")
+	portF := flag.Int("port", 50051, "Port to listen on")
+	flag.Parse()
+
+	address := fmt.Sprintf("%s:%d", *interfaceF, *portF)
+	log.Println("starting grpc server on", address)
+
+	s := grpc.NewServer()
+	RegisterProxyServer(s, NewProxy())
+	lis, err := net.Listen("tcp", address)
+	if err != nil {
+		log.Fatalf("failed to listen: %v", err)
+	}
+	err = s.Serve(lis)
+	if err != nil {
+		log.Println(err)
+	}
+}
+
+type Proxy struct {
+}
+
+func NewProxy() *Proxy {
+	return &Proxy{}
+}
+
+func (p *Proxy) Proxy(stream Proxy_ProxyServer) error {
+	rawReq, err := stream.Recv()
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+	log.Println(rawReq)
+	switch req := rawReq.Req.(type) {
+	case *ProxyRequest_Connect:
+		log.Println("connecting", req)
+		err = stream.Send(&ProxyResponse{Res: &ProxyResponse_Connected{}})
+		return err
+	default:
+		return errors.New("unknown request")
+	}
+	return nil
+}
+
+func mainClient() {
+	serverF := flag.String("server", "127.0.0.1:50051", "Proxy server address")
+	flag.Parse()
+
+	conn, err := grpc.Dial(*serverF, grpc.WithInsecure(), grpc.WithBlock())
+	if err != nil {
+		log.Fatalf("did not connect: %v", err)
+	}
+	defer conn.Close()
+
+	client := NewProxyClient(conn)
+	proxyClient, err := client.Proxy(context.Background())
+	if err != nil {
+		log.Panic(err)
+	}
+
+	err = proxyClient.Send(&ProxyRequest{
+		Req: &ProxyRequest_Connect{},
+	})
+	if err != nil {
+		log.Panic(err)
+	}
+
+	resp, err := proxyClient.Recv()
+	if err != nil {
+		log.Panic(err)
+	}
+	log.Println(resp)
 }

@@ -126,7 +126,7 @@ func (p *Proxy) Proxy(stream Proxy_ProxyServer) error {
 		log.Println(err)
 		return err
 	}
-	log.Println(rawReq)
+	log.Println("received request", rawReq)
 	switch req := rawReq.Req.(type) {
 	case *ProxyRequest_Connect:
 		log.Println("connecting", req)
@@ -140,15 +140,37 @@ func (p *Proxy) Proxy(stream Proxy_ProxyServer) error {
 
 func mainClient() {
 	serverF := flag.String("server", "127.0.0.1:50051", "Proxy server address")
+	interfaceF := flag.String("interface", "127.0.0.1", "Interface to bind to")
+	portF := flag.Int("port", 63000, "Port to listen on")
 	flag.Parse()
 
-	conn, err := grpc.Dial(*serverF, grpc.WithInsecure(), grpc.WithBlock())
+	upstreamConn, err := grpc.Dial(*serverF, grpc.WithInsecure(), grpc.WithBlock())
 	if err != nil {
 		log.Fatalf("did not connect: %v", err)
 	}
-	defer conn.Close()
+	defer upstreamConn.Close()
+	client := NewProxyClient(upstreamConn)
 
-	client := NewProxyClient(conn)
+	address := fmt.Sprintf("%s:%d", *interfaceF, *portF)
+	log.Println("running proxy on", address)
+	listener, err := net.Listen("tcp", address)
+	if err != nil {
+		panic(err)
+	}
+	defer listener.Close()
+
+	for {
+		conn, err := listener.Accept()
+		if err != nil {
+			panic(err)
+		}
+		go proxyConnOverGrpc(conn, client)
+	}
+
+}
+
+func proxyConnOverGrpc(conn net.Conn, client ProxyClient) {
+	defer conn.Close()
 	proxyClient, err := client.Proxy(context.Background())
 	if err != nil {
 		log.Panic(err)

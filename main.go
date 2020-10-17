@@ -131,11 +131,38 @@ func (p *Proxy) Proxy(stream Proxy_ProxyServer) error {
 	case *ProxyRequest_Connect:
 		log.Println("connecting", req)
 		err = stream.Send(&ProxyResponse{Res: &ProxyResponse_Connected{}})
-		return err
+		if err != nil {
+			log.Println("error sending connected response", err)
+			return err
+		}
 	default:
 		return errors.New("unknown request")
 	}
-	return nil
+	for {
+		rawReq, err := stream.Recv()
+		if err != nil {
+			log.Println(err)
+			return err
+		}
+		log.Println("received request", rawReq)
+		switch req := rawReq.Req.(type) {
+		case *ProxyRequest_Chunk:
+			log.Println("echoing chunk", req)
+			err = stream.Send(
+				&ProxyResponse{
+					Res: &ProxyResponse_Chunk{
+						Chunk: req.Chunk,
+					},
+				},
+			)
+			if err != nil {
+				log.Println(err)
+				return err
+			}
+		default:
+			return errors.New("unknown request")
+		}
+	}
 }
 
 func mainClient() {
@@ -175,6 +202,7 @@ func proxyConnOverGrpc(conn net.Conn, client ProxyClient) {
 	if err != nil {
 		log.Panic(err)
 	}
+	defer proxyClient.CloseSend()
 
 	err = proxyClient.Send(&ProxyRequest{
 		Req: &ProxyRequest_Connect{},
@@ -187,5 +215,48 @@ func proxyConnOverGrpc(conn net.Conn, client ProxyClient) {
 	if err != nil {
 		log.Panic(err)
 	}
-	log.Println(resp)
+	if _, ok := resp.GetRes().(*ProxyResponse_Connected); !ok {
+		log.Println("Did not connect")
+		return
+	}
+	log.Println("connected")
+	go func() {
+		for {
+			log.Println("reading chunks")
+			resp, err := proxyClient.Recv()
+			if err != nil {
+				log.Println("error receiving", err)
+				return
+			}
+			chunk, ok := resp.Res.(*ProxyResponse_Chunk)
+			if !ok {
+				log.Println("Failed to read chunk", resp.Res)
+				return
+			}
+			buf := chunk.Chunk.Payload
+			_, err = conn.Write(buf)
+			if err != nil {
+				log.Println("Failed to write to conn", err)
+				conn.Close()
+				return
+			}
+		}
+	}()
+	buf := make([]byte, 32*1024)
+	for {
+		n, err := conn.Read(buf)
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		proxyClient.Send(
+			&ProxyRequest{
+				Req: &ProxyRequest_Chunk{
+					Chunk: &ProxyBytes{
+						Payload: buf[:n],
+					},
+				},
+			},
+		)
+	}
 }

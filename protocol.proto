@@ -7,7 +7,7 @@ option go_package = ".;main";
 message ProxyRequest {
 	oneof req {
       ProxyConnect connect = 1;
-	  ProxyBytes chunk = 2;
+	  bytes chunk = 2;
 	}
 }
 
@@ -15,9 +15,6 @@ message ProxyConnect {
 	string target = 1;
 }
 
-message ProxyBytes {
-	bytes payload = 1;
-}
 
 message ProxyConnected {
 }
@@ -25,7 +22,7 @@ message ProxyConnected {
 message ProxyResponse {
 	oneof res {
 	  ProxyConnected connected = 1;
-	  ProxyBytes chunk = 2;
+	  bytes chunk = 2;
     }
 }
 

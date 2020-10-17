@@ -231,7 +231,7 @@ func proxyConnOverGrpc(conn net.Conn, client ProxyClient) {
 				log.Println("Failed to read chunk", resp.Res)
 				return
 			}
-			buf := chunk.Chunk.Payload
+			buf := chunk.Chunk
 			_, err = conn.Write(buf)
 			if err != nil {
 				log.Println("Failed to write to conn", err)
@@ -250,9 +250,7 @@ func proxyConnOverGrpc(conn net.Conn, client ProxyClient) {
 		proxyClient.Send(
 			&ProxyRequest{
 				Req: &ProxyRequest_Chunk{
-					Chunk: &ProxyBytes{
-						Payload: buf[:n],
-					},
+					Chunk: buf[:n],
 				},
 			},
 		)

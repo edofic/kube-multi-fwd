@@ -32,7 +32,7 @@ func (m *ProxyRequest) Reset()         { *m = ProxyRequest{} }
 func (m *ProxyRequest) String() string { return proto.CompactTextString(m) }
 func (*ProxyRequest) ProtoMessage()    {}
 func (*ProxyRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_protocol_71394c8befea4acd, []int{0}
+	return fileDescriptor_protocol_97fa3d6d0402f717, []int{0}
 }
 func (m *ProxyRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ProxyRequest.Unmarshal(m, b)
@@ -60,7 +60,7 @@ type ProxyRequest_Connect struct {
 	Connect *ProxyConnect `protobuf:"bytes,1,opt,name=connect,proto3,oneof"`
 }
 type ProxyRequest_Chunk struct {
-	Chunk *ProxyBytes `protobuf:"bytes,2,opt,name=chunk,proto3,oneof"`
+	Chunk []byte `protobuf:"bytes,2,opt,name=chunk,proto3,oneof"`
 }
 
 func (*ProxyRequest_Connect) isProxyRequest_Req() {}
@@ -80,7 +80,7 @@ func (m *ProxyRequest) GetConnect() *ProxyConnect {
 	return nil
 }
 
-func (m *ProxyRequest) GetChunk() *ProxyBytes {
+func (m *ProxyRequest) GetChunk() []byte {
 	if x, ok := m.GetReq().(*ProxyRequest_Chunk); ok {
 		return x.Chunk
 	}
@@ -106,9 +106,7 @@ func _ProxyRequest_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
 		}
 	case *ProxyRequest_Chunk:
 		b.EncodeVarint(2<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.Chunk); err != nil {
-			return err
-		}
+		b.EncodeRawBytes(x.Chunk)
 	case nil:
 	default:
 		return fmt.Errorf("ProxyRequest.Req has unexpected type %T", x)
@@ -131,9 +129,8 @@ func _ProxyRequest_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.B
 		if wire != proto.WireBytes {
 			return true, proto.ErrInternalBadWireType
 		}
-		msg := new(ProxyBytes)
-		err := b.DecodeMessage(msg)
-		m.Req = &ProxyRequest_Chunk{msg}
+		x, err := b.DecodeRawBytes(true)
+		m.Req = &ProxyRequest_Chunk{x}
 		return true, err
 	default:
 		return false, nil
@@ -150,10 +147,9 @@ func _ProxyRequest_OneofSizer(msg proto.Message) (n int) {
 		n += proto.SizeVarint(uint64(s))
 		n += s
 	case *ProxyRequest_Chunk:
-		s := proto.Size(x.Chunk)
 		n += 1 // tag and wire
-		n += proto.SizeVarint(uint64(s))
-		n += s
+		n += proto.SizeVarint(uint64(len(x.Chunk)))
+		n += len(x.Chunk)
 	case nil:
 	default:
 		panic(fmt.Sprintf("proto: unexpected type %T in oneof", x))
@@ -172,7 +168,7 @@ func (m *ProxyConnect) Reset()         { *m = ProxyConnect{} }
 func (m *ProxyConnect) String() string { return proto.CompactTextString(m) }
 func (*ProxyConnect) ProtoMessage()    {}
 func (*ProxyConnect) Descriptor() ([]byte, []int) {
-	return fileDescriptor_protocol_71394c8befea4acd, []int{1}
+	return fileDescriptor_protocol_97fa3d6d0402f717, []int{1}
 }
 func (m *ProxyConnect) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ProxyConnect.Unmarshal(m, b)
@@ -199,44 +195,6 @@ func (m *ProxyConnect) GetTarget() string {
 	return ""
 }
 
-type ProxyBytes struct {
-	Payload              []byte   `protobuf:"bytes,1,opt,name=payload,proto3" json:"payload,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
-}
-
-func (m *ProxyBytes) Reset()         { *m = ProxyBytes{} }
-func (m *ProxyBytes) String() string { return proto.CompactTextString(m) }
-func (*ProxyBytes) ProtoMessage()    {}
-func (*ProxyBytes) Descriptor() ([]byte, []int) {
-	return fileDescriptor_protocol_71394c8befea4acd, []int{2}
-}
-func (m *ProxyBytes) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_ProxyBytes.Unmarshal(m, b)
-}
-func (m *ProxyBytes) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_ProxyBytes.Marshal(b, m, deterministic)
-}
-func (dst *ProxyBytes) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ProxyBytes.Merge(dst, src)
-}
-func (m *ProxyBytes) XXX_Size() int {
-	return xxx_messageInfo_ProxyBytes.Size(m)
-}
-func (m *ProxyBytes) XXX_DiscardUnknown() {
-	xxx_messageInfo_ProxyBytes.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_ProxyBytes proto.InternalMessageInfo
-
-func (m *ProxyBytes) GetPayload() []byte {
-	if m != nil {
-		return m.Payload
-	}
-	return nil
-}
-
 type ProxyConnected struct {
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
@@ -247,7 +205,7 @@ func (m *ProxyConnected) Reset()         { *m = ProxyConnected{} }
 func (m *ProxyConnected) String() string { return proto.CompactTextString(m) }
 func (*ProxyConnected) ProtoMessage()    {}
 func (*ProxyConnected) Descriptor() ([]byte, []int) {
-	return fileDescriptor_protocol_71394c8befea4acd, []int{3}
+	return fileDescriptor_protocol_97fa3d6d0402f717, []int{2}
 }
 func (m *ProxyConnected) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ProxyConnected.Unmarshal(m, b)
@@ -281,7 +239,7 @@ func (m *ProxyResponse) Reset()         { *m = ProxyResponse{} }
 func (m *ProxyResponse) String() string { return proto.CompactTextString(m) }
 func (*ProxyResponse) ProtoMessage()    {}
 func (*ProxyResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_protocol_71394c8befea4acd, []int{4}
+	return fileDescriptor_protocol_97fa3d6d0402f717, []int{3}
 }
 func (m *ProxyResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ProxyResponse.Unmarshal(m, b)
@@ -309,7 +267,7 @@ type ProxyResponse_Connected struct {
 	Connected *ProxyConnected `protobuf:"bytes,1,opt,name=connected,proto3,oneof"`
 }
 type ProxyResponse_Chunk struct {
-	Chunk *ProxyBytes `protobuf:"bytes,2,opt,name=chunk,proto3,oneof"`
+	Chunk []byte `protobuf:"bytes,2,opt,name=chunk,proto3,oneof"`
 }
 
 func (*ProxyResponse_Connected) isProxyResponse_Res() {}
@@ -329,7 +287,7 @@ func (m *ProxyResponse) GetConnected() *ProxyConnected {
 	return nil
 }
 
-func (m *ProxyResponse) GetChunk() *ProxyBytes {
+func (m *ProxyResponse) GetChunk() []byte {
 	if x, ok := m.GetRes().(*ProxyResponse_Chunk); ok {
 		return x.Chunk
 	}
@@ -355,9 +313,7 @@ func _ProxyResponse_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
 		}
 	case *ProxyResponse_Chunk:
 		b.EncodeVarint(2<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.Chunk); err != nil {
-			return err
-		}
+		b.EncodeRawBytes(x.Chunk)
 	case nil:
 	default:
 		return fmt.Errorf("ProxyResponse.Res has unexpected type %T", x)
@@ -380,9 +336,8 @@ func _ProxyResponse_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.
 		if wire != proto.WireBytes {
 			return true, proto.ErrInternalBadWireType
 		}
-		msg := new(ProxyBytes)
-		err := b.DecodeMessage(msg)
-		m.Res = &ProxyResponse_Chunk{msg}
+		x, err := b.DecodeRawBytes(true)
+		m.Res = &ProxyResponse_Chunk{x}
 		return true, err
 	default:
 		return false, nil
@@ -399,10 +354,9 @@ func _ProxyResponse_OneofSizer(msg proto.Message) (n int) {
 		n += proto.SizeVarint(uint64(s))
 		n += s
 	case *ProxyResponse_Chunk:
-		s := proto.Size(x.Chunk)
 		n += 1 // tag and wire
-		n += proto.SizeVarint(uint64(s))
-		n += s
+		n += proto.SizeVarint(uint64(len(x.Chunk)))
+		n += len(x.Chunk)
 	case nil:
 	default:
 		panic(fmt.Sprintf("proto: unexpected type %T in oneof", x))
@@ -413,29 +367,26 @@ func _ProxyResponse_OneofSizer(msg proto.Message) (n int) {
 func init() {
 	proto.RegisterType((*ProxyRequest)(nil), "main.ProxyRequest")
 	proto.RegisterType((*ProxyConnect)(nil), "main.ProxyConnect")
-	proto.RegisterType((*ProxyBytes)(nil), "main.ProxyBytes")
 	proto.RegisterType((*ProxyConnected)(nil), "main.ProxyConnected")
 	proto.RegisterType((*ProxyResponse)(nil), "main.ProxyResponse")
 }
 
-func init() { proto.RegisterFile("protocol.proto", fileDescriptor_protocol_71394c8befea4acd) }
+func init() { proto.RegisterFile("protocol.proto", fileDescriptor_protocol_97fa3d6d0402f717) }
 
-var fileDescriptor_protocol_71394c8befea4acd = []byte{
-	// 250 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x91, 0x31, 0x4f, 0xc3, 0x30,
-	0x10, 0x85, 0x13, 0x20, 0x29, 0x3d, 0x4a, 0x55, 0x1d, 0x08, 0x45, 0x4c, 0xc8, 0x43, 0x95, 0xc9,
-	0x42, 0x05, 0xb1, 0x30, 0x20, 0x85, 0x25, 0x23, 0xf2, 0xc8, 0x16, 0x9c, 0x13, 0x20, 0x8a, 0x2f,
-	0x8d, 0x5d, 0x44, 0xfe, 0x3d, 0xaa, 0xe3, 0xa8, 0x41, 0x4c, 0x6c, 0x77, 0x7e, 0x9f, 0xde, 0xf9,
-	0xdd, 0xc1, 0xbc, 0x69, 0xd9, 0xb1, 0xe6, 0xb5, 0xf4, 0x05, 0x1e, 0x7d, 0x56, 0xef, 0x46, 0x30,
-	0xcc, 0x9e, 0x5a, 0xfe, 0xee, 0x14, 0x6d, 0xb6, 0x64, 0x1d, 0x4a, 0x98, 0x68, 0x36, 0x86, 0xb4,
-	0xcb, 0xe2, 0xab, 0x38, 0x3f, 0x59, 0xa1, 0xdc, 0x71, 0xd2, 0x43, 0x8f, 0xbd, 0x52, 0x46, 0x6a,
-	0x80, 0x30, 0x87, 0x44, 0xbf, 0x6d, 0xcd, 0x47, 0x76, 0xe0, 0xe9, 0xc5, 0x88, 0x2e, 0x3a, 0x47,
-	0xb6, 0x8c, 0x54, 0x0f, 0x14, 0x09, 0x1c, 0xb6, 0xb4, 0x11, 0xcb, 0x30, 0x30, 0x78, 0xe1, 0x05,
-	0xa4, 0xae, 0x6a, 0x5f, 0xa9, 0x9f, 0x37, 0x55, 0xa1, 0x13, 0x4b, 0x80, 0xbd, 0x0b, 0x66, 0x30,
-	0x69, 0xaa, 0x6e, 0xcd, 0x55, 0xed, 0xb1, 0x99, 0x1a, 0x5a, 0xb1, 0x80, 0xf9, 0xd8, 0x8f, 0x6a,
-	0xf1, 0x05, 0xa7, 0x21, 0x92, 0x6d, 0xd8, 0x58, 0xc2, 0x5b, 0x98, 0xea, 0x41, 0x0d, 0xa9, 0xce,
-	0xff, 0xa6, 0xa2, 0xba, 0x8c, 0xd4, 0x1e, 0xfc, 0x6f, 0x32, 0xbb, 0x7a, 0x80, 0xc4, 0xab, 0x78,
-	0x37, 0x14, 0xe3, 0xdd, 0x85, 0x05, 0x5f, 0x9e, 0xfd, 0x7a, 0xeb, 0x7f, 0x28, 0xa2, 0x3c, 0xbe,
-	0x8e, 0x8b, 0xe3, 0xe7, 0x54, 0xde, 0xef, 0xd4, 0x97, 0xd4, 0x9f, 0xe8, 0xe6, 0x27, 0x00, 0x00,
-	0xff, 0xff, 0xfb, 0xb7, 0x53, 0xf8, 0xb4, 0x01, 0x00, 0x00,
+var fileDescriptor_protocol_97fa3d6d0402f717 = []byte{
+	// 221 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0xe2, 0x2b, 0x28, 0xca, 0x2f,
+	0xc9, 0x4f, 0xce, 0xcf, 0xd1, 0x03, 0x33, 0x84, 0x58, 0x72, 0x13, 0x33, 0xf3, 0x94, 0x62, 0xb9,
+	0x78, 0x02, 0x8a, 0xf2, 0x2b, 0x2a, 0x83, 0x52, 0x0b, 0x4b, 0x53, 0x8b, 0x4b, 0x84, 0xf4, 0xb8,
+	0xd8, 0x93, 0xf3, 0xf3, 0xf2, 0x52, 0x93, 0x4b, 0x24, 0x18, 0x15, 0x18, 0x35, 0xb8, 0x8d, 0x84,
+	0xf4, 0x40, 0xea, 0xf4, 0xc0, 0x8a, 0x9c, 0x21, 0x32, 0x1e, 0x0c, 0x41, 0x30, 0x45, 0x42, 0x62,
+	0x5c, 0xac, 0xc9, 0x19, 0xa5, 0x79, 0xd9, 0x12, 0x4c, 0x0a, 0x8c, 0x1a, 0x3c, 0x1e, 0x0c, 0x41,
+	0x10, 0xae, 0x13, 0x2b, 0x17, 0x73, 0x51, 0x6a, 0xa1, 0x92, 0x1a, 0xd4, 0x78, 0x67, 0xb8, 0x72,
+	0xb6, 0x92, 0xc4, 0xa2, 0xf4, 0x54, 0x88, 0xe9, 0x9c, 0x41, 0x50, 0x9e, 0x92, 0x00, 0x17, 0x1f,
+	0xb2, 0xba, 0xd4, 0x14, 0xa5, 0x14, 0x2e, 0x5e, 0xa8, 0xc3, 0x8a, 0x0b, 0xf2, 0xf3, 0x8a, 0x53,
+	0x85, 0x4c, 0xb8, 0x38, 0x93, 0x61, 0xb2, 0x50, 0xb7, 0x89, 0x60, 0xba, 0x2d, 0x35, 0xc5, 0x83,
+	0x21, 0x08, 0xa1, 0x10, 0xbf, 0xfb, 0x8a, 0x8d, 0xec, 0xb9, 0x58, 0xc1, 0xba, 0x85, 0xcc, 0x60,
+	0x0c, 0x64, 0xff, 0x42, 0x03, 0x45, 0x4a, 0x18, 0x45, 0x0c, 0xe2, 0x1e, 0x25, 0x06, 0x0d, 0x46,
+	0x03, 0x46, 0x27, 0x8e, 0x28, 0x36, 0x3d, 0x6b, 0x90, 0x6c, 0x12, 0x1b, 0x38, 0x58, 0x8d, 0x01,
+	0x01, 0x00, 0x00, 0xff, 0xff, 0xdc, 0x1c, 0xa2, 0xbb, 0x68, 0x01, 0x00, 0x00,
 }

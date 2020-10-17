@@ -144,10 +144,8 @@ func (p *Proxy) Proxy(stream Proxy_ProxyServer) error {
 			log.Println(err)
 			return err
 		}
-		log.Println("received request", rawReq)
 		switch req := rawReq.Req.(type) {
 		case *ProxyRequest_Chunk:
-			log.Println("echoing chunk", req)
 			err = stream.Send(
 				&ProxyResponse{
 					Res: &ProxyResponse_Chunk{
@@ -160,6 +158,7 @@ func (p *Proxy) Proxy(stream Proxy_ProxyServer) error {
 				return err
 			}
 		default:
+			log.Println("received request", rawReq)
 			return errors.New("unknown request")
 		}
 	}
@@ -222,7 +221,6 @@ func proxyConnOverGrpc(conn net.Conn, client ProxyClient) {
 	log.Println("connected")
 	go func() {
 		for {
-			log.Println("reading chunks")
 			resp, err := proxyClient.Recv()
 			if err != nil {
 				log.Println("error receiving", err)

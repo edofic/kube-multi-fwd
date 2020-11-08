@@ -121,6 +121,7 @@ func NewProxy() *Proxy {
 }
 
 func (p *Proxy) Proxy(stream Proxy_ProxyServer) error {
+	var target net.Conn
 	rawReq, err := stream.Recv()
 	if err != nil {
 		log.Println(err)
@@ -130,6 +131,11 @@ func (p *Proxy) Proxy(stream Proxy_ProxyServer) error {
 	switch req := rawReq.Req.(type) {
 	case *ProxyRequest_Connect:
 		log.Println("connecting", req)
+		target, err = net.Dial("tcp", req.Connect.Target)
+		if err != nil {
+			log.Println("error connecting", err)
+		}
+		defer target.Close()
 		err = stream.Send(&ProxyResponse{Res: &ProxyResponse_Connected{}})
 		if err != nil {
 			log.Println("error sending connected response", err)
@@ -138,6 +144,32 @@ func (p *Proxy) Proxy(stream Proxy_ProxyServer) error {
 	default:
 		return errors.New("unknown request")
 	}
+	go func() {
+		defer target.Close()
+		defer func() {
+			stream.Send(&ProxyResponse{Res: &ProxyResponse_Eof{}})
+		}()
+		for {
+			buf := make([]byte, 32*1024)
+			n, err := target.Read(buf)
+			if err != nil {
+				log.Println(err)
+				return
+			}
+			chunk := buf[:n]
+			err = stream.Send(
+				&ProxyResponse{
+					Res: &ProxyResponse_Chunk{
+						Chunk: chunk,
+					},
+				},
+			)
+			if err != nil {
+				log.Println(err)
+				return
+			}
+		}
+	}()
 	for {
 		rawReq, err := stream.Recv()
 		if err != nil {
@@ -146,13 +178,7 @@ func (p *Proxy) Proxy(stream Proxy_ProxyServer) error {
 		}
 		switch req := rawReq.Req.(type) {
 		case *ProxyRequest_Chunk:
-			err = stream.Send(
-				&ProxyResponse{
-					Res: &ProxyResponse_Chunk{
-						Chunk: req.Chunk,
-					},
-				},
-			)
+			_, err = target.Write(req.Chunk)
 			if err != nil {
 				log.Println(err)
 				return err
@@ -228,16 +254,19 @@ func proxyConnOverGrpc(target string, conn net.Conn, client ProxyClient) {
 				log.Println("error receiving", err)
 				return
 			}
-			chunk, ok := resp.Res.(*ProxyResponse_Chunk)
-			if !ok {
-				log.Println("Failed to read chunk", resp.Res)
+			switch res := resp.Res.(type) {
+			case *ProxyResponse_Chunk:
+				_, err = conn.Write(res.Chunk)
+				if err != nil {
+					log.Println("Failed to write to conn", err)
+					conn.Close()
+					return
+				}
+			case *ProxyResponse_Eof:
+				log.Println("Proxy EOF", res)
 				return
-			}
-			buf := chunk.Chunk
-			_, err = conn.Write(buf)
-			if err != nil {
-				log.Println("Failed to write to conn", err)
-				conn.Close()
+			default:
+				log.Println("Failed to read response", res)
 				return
 			}
 		}

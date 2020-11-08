@@ -23,6 +23,7 @@ message ProxyResponse {
 	oneof res {
 	  ProxyConnected connected = 1;
 	  bytes chunk = 2;
+	  string eof = 3;
     }
 }
 

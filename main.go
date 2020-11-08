@@ -190,12 +190,12 @@ func mainClient() {
 		if err != nil {
 			panic(err)
 		}
-		go proxyConnOverGrpc(conn, client)
+		go proxyConnOverGrpc("localhost:8000", conn, client)
 	}
 
 }
 
-func proxyConnOverGrpc(conn net.Conn, client ProxyClient) {
+func proxyConnOverGrpc(target string, conn net.Conn, client ProxyClient) {
 	defer conn.Close()
 	proxyClient, err := client.Proxy(context.Background())
 	if err != nil {
@@ -204,7 +204,9 @@ func proxyConnOverGrpc(conn net.Conn, client ProxyClient) {
 	defer proxyClient.CloseSend()
 
 	err = proxyClient.Send(&ProxyRequest{
-		Req: &ProxyRequest_Connect{},
+		Req: &ProxyRequest_Connect{
+			Connect: &ProxyConnect{Target: target},
+		},
 	})
 	if err != nil {
 		log.Panic(err)

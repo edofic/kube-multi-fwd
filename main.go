@@ -93,6 +93,7 @@ func (p *Proxy) Proxy(stream Proxy_ProxyServer) error {
 		target, err = net.Dial("tcp", req.Connect.Target)
 		if err != nil {
 			log.Println("error connecting", err)
+			return err
 		}
 		defer target.Close()
 		err = stream.Send(&ProxyResponse{Res: &ProxyResponse_Connected{}})
@@ -216,7 +217,8 @@ func proxyConnOverGrpc(target string, conn net.Conn, client ProxyClient) {
 
 	resp, err := proxyClient.Recv()
 	if err != nil {
-		log.Panic(err)
+		log.Println(err)
+		return
 	}
 	if _, ok := resp.GetRes().(*ProxyResponse_Connected); !ok {
 		log.Println("Did not connect")

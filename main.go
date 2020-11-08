@@ -162,6 +162,10 @@ func mainClient() {
 	client := NewProxyClient(upstreamConn)
 
 	address := fmt.Sprintf("%s:%d", *interfaceF, *portF)
+	runSingleClient(address, "localhost:8000", client)
+}
+
+func runSingleClient(address, target string, client ProxyClient) {
 	log.Println("running proxy on", address)
 	listener, err := net.Listen("tcp", address)
 	if err != nil {
@@ -174,9 +178,8 @@ func mainClient() {
 		if err != nil {
 			panic(err)
 		}
-		go proxyConnOverGrpc("localhost:8000", conn, client)
+		go proxyConnOverGrpc(target, conn, client)
 	}
-
 }
 
 func proxyConnOverGrpc(target string, conn net.Conn, client ProxyClient) {

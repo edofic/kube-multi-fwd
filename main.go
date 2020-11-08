@@ -10,6 +10,7 @@ import (
 	"net"
 	"os"
 	"strings"
+	"sync"
 
 	"google.golang.org/grpc"
 )
@@ -151,7 +152,7 @@ func (p *Proxy) Proxy(stream Proxy_ProxyServer) error {
 func mainClient() {
 	serverF := flag.String("server", "127.0.0.1:50051", "Proxy server address")
 	interfaceF := flag.String("interface", "127.0.0.1", "Interface to bind to")
-	portF := flag.Int("port", 63000, "Port to listen on")
+	forwards := flag.String("forwards", "", "Comma separated list of forwards of the form <LOCAL PORT>:<TARGET HOST>:<TARGET PORT>")
 	flag.Parse()
 
 	upstreamConn, err := grpc.Dial(*serverF, grpc.WithInsecure(), grpc.WithBlock())
@@ -161,8 +162,22 @@ func mainClient() {
 	defer upstreamConn.Close()
 	client := NewProxyClient(upstreamConn)
 
-	address := fmt.Sprintf("%s:%d", *interfaceF, *portF)
-	runSingleClient(address, "localhost:8000", client)
+	var wg sync.WaitGroup
+	for _, forward := range strings.Split(*forwards, ",") {
+		parts := strings.SplitN(forward, ":", 2)
+		if len(parts) != 2 {
+			log.Panic("Cannot parse port forward config", forward)
+		}
+		port := parts[0]
+		target := parts[1]
+		address := fmt.Sprintf("%s:%s", *interfaceF, port)
+		wg.Add(1)
+		go func() {
+			runSingleClient(address, target, client)
+			wg.Done()
+		}()
+	}
+	wg.Wait()
 }
 
 func runSingleClient(address, target string, client ProxyClient) {

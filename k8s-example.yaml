@@ -25,21 +25,29 @@ spec:
     - protocol: TCP
       port: 50051
 ---
-apiVersion: v1
-kind: Pod
+apiVersion: apps/v1
+kind: Deployment
 metadata:
   name: fwd
   labels:
     app: fwd
 spec:
-  containers:
-    - name: fwd
-      image: alpine
-      command: ['sleep', 'infinity']  # need to cp and run server manually as there is no image yet
-      ports:
-        - name: grpc
-          containerPort: 50051
-          protocol: TCP
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fwd
+  template:
+    metadata:
+      labels:
+        app: fwd
+    spec:
+      containers:
+        - name: fwd
+          image: edofic/kube-multi-fwd
+          ports:
+            - name: grpc
+              containerPort: 50051
+              protocol: TCP
 ---
 apiVersion: v1
 kind: Pod

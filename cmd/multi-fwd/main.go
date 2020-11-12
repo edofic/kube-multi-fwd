@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/edofic/kube-multi-fwd"
@@ -61,8 +62,25 @@ func mainServer() {
 func mainClient() {
 	serverF := flag.String("server", "127.0.0.1:50051", "Proxy server address")
 	interfaceF := flag.String("interface", "127.0.0.1", "Interface to bind to")
-	forwards := flag.String("forwards", "", "Comma separated list of forwards of the form <LOCAL PORT>:<TARGET HOST>:<TARGET PORT>")
+	forwardsF := flag.String("forwards", "", "Comma separated list of forwards of the form <LOCAL PORT>:<TARGET HOST>:<TARGET PORT>")
 	flag.Parse()
 
-	fwd.RunClient(*serverF, *interfaceF, *forwards)
+	var forwards []fwd.ForwardingConfiguration
+	for _, forward := range strings.Split(*forwardsF, ",") {
+		parts := strings.SplitN(forward, ":", 2)
+		if len(parts) != 2 {
+			log.Panic("Cannot parse port forward config", forward)
+		}
+		port, err := strconv.Atoi(parts[0])
+		if err != nil {
+			panic(err)
+		}
+
+		target := parts[1]
+		forwards = append(forwards, fwd.ForwardingConfiguration{
+			LocalPort: uint16(port),
+			Target:    target,
+		})
+	}
+	fwd.RunClient(*serverF, *interfaceF, forwards)
 }

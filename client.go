@@ -5,36 +5,35 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"strings"
 	"sync"
 
 	"google.golang.org/grpc"
 )
 
-func RunClient(serverAddr string, interface_ string, forwards string) {
+type ForwardingConfiguration struct {
+	LocalPort uint16
+	Target    string
+}
+
+func RunClient(serverAddr string, interface_ string, forwards []ForwardingConfiguration) error {
 	upstreamConn, err := grpc.Dial(serverAddr, grpc.WithInsecure(), grpc.WithBlock())
 	if err != nil {
-		log.Fatalf("did not connect: %v", err)
+		return err
 	}
 	defer upstreamConn.Close()
 	client := NewProxyClient(upstreamConn)
 
 	var wg sync.WaitGroup
-	for _, forward := range strings.Split(forwards, ",") {
-		parts := strings.SplitN(forward, ":", 2)
-		if len(parts) != 2 {
-			log.Panic("Cannot parse port forward config", forward)
-		}
-		port := parts[0]
-		target := parts[1]
-		address := fmt.Sprintf("%s:%s", interface_, port)
+	for _, forward := range forwards {
+		address := fmt.Sprintf("%s:%d", interface_, forward.LocalPort)
 		wg.Add(1)
 		go func() {
-			runSingleClient(address, target, client)
+			runSingleClient(address, forward.Target, client)
 			wg.Done()
 		}()
 	}
 	wg.Wait()
+	return nil
 }
 
 func runSingleClient(address, target string, client ProxyClient) {

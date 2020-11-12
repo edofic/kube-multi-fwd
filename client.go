@@ -11,8 +11,8 @@ import (
 )
 
 type ForwardingConfiguration struct {
-	LocalPort uint16
-	Target    string
+	LocalPort uint16 `yaml:"local-port"`
+	Target    string `yaml:"target"`
 }
 
 func RunClient(serverAddr string, interface_ string, forwards []ForwardingConfiguration) error {
@@ -37,7 +37,7 @@ func RunClient(serverAddr string, interface_ string, forwards []ForwardingConfig
 }
 
 func runSingleClient(address, target string, client ProxyClient) {
-	log.Println("running proxy on", address)
+	log.Println("forwarding", address, "->", target)
 	listener, err := net.Listen("tcp", address)
 	if err != nil {
 		panic(err)

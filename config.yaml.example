@@ -1,0 +1,6 @@
+forwards:
+  - local-port: 8000
+    target: web:80
+  - local-port: 9000
+    target: my-grpc:50051
+

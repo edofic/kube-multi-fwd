@@ -3,12 +3,14 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 	"strconv"
 	"strings"
 
 	"github.com/edofic/kube-multi-fwd"
+	"gopkg.in/yaml.v2"
 )
 
 type Command struct {
@@ -59,14 +61,47 @@ func mainServer() {
 	fwd.RunServer(address)
 }
 
+type ClientConfiguration struct {
+	Forwards []fwd.ForwardingConfiguration `yaml:"forwards"`
+}
+
 func mainClient() {
 	serverF := flag.String("server", "127.0.0.1:50051", "Proxy server address")
 	interfaceF := flag.String("interface", "127.0.0.1", "Interface to bind to")
+	configF := flag.String("config", "", "Forwarding configuration file. Cannot be set if `forwards` is set")
 	forwardsF := flag.String("forwards", "", "Comma separated list of forwards of the form <LOCAL PORT>:<TARGET HOST>:<TARGET PORT>")
 	flag.Parse()
 
+	if (*configF != "") && (*forwardsF != "") {
+		log.Panic("Cannot specify both a config file and forwards flag")
+	}
+
 	var forwards []fwd.ForwardingConfiguration
-	for _, forward := range strings.Split(*forwardsF, ",") {
+	if *forwardsF != "" {
+		forwards = parseForwards(*forwardsF)
+	} else {
+		config, err := ioutil.ReadFile(*configF)
+		if err != nil {
+			panic(err)
+		}
+		var configuration ClientConfiguration
+		err = yaml.Unmarshal(config, &configuration)
+		if err != nil {
+			panic(err)
+		}
+		forwards = configuration.Forwards
+	}
+
+	if len(forwards) == 0 {
+		log.Println("nothing to forward")
+	}
+
+	fwd.RunClient(*serverF, *interfaceF, forwards)
+}
+
+func parseForwards(raw string) []fwd.ForwardingConfiguration {
+	var forwards []fwd.ForwardingConfiguration
+	for _, forward := range strings.Split(raw, ",") {
 		parts := strings.SplitN(forward, ":", 2)
 		if len(parts) != 2 {
 			log.Panic("Cannot parse port forward config", forward)
@@ -82,5 +117,5 @@ func mainClient() {
 			Target:    target,
 		})
 	}
-	fwd.RunClient(*serverF, *interfaceF, forwards)
+	return forwards
 }
